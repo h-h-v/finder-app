@@ -1,5 +1,5 @@
 # Name of the GitHub Actions workflow
-name: Build Docker Image and Check Terraform Plan
+name: Build and Push Docker Image to ACR
 
 # Controls when the action will run. 
 # It triggers on pushes to the "main" branch.
@@ -10,14 +10,11 @@ on:
 
 # Define environment variables for the workflow
 env:
-  # Using your existing Resource Group and ACR names
-  RESOURCE_GROUP_NAME: 'LFS'
+  # Using your existing ACR name
   ACR_NAME: 'ACRLFS' 
-  # Define a name for the AKS cluster to be created
-  AKS_CLUSTER_NAME: 'finder-app-aks' 
 
 jobs:
-  build-and-plan:
+  build-and-push:
     runs-on: ubuntu-latest
     
     steps:
@@ -39,32 +36,10 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    # Step 4: Builds the Docker image and pushes it to your ACR.
+    # Step 4: Builds the Docker image from your Dockerfile and pushes it to ACR.
     # The image is tagged with the unique GitHub run number for versioning.
     - name: Build and Push Docker image to ACR
       run: |
         docker build . -t ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.run_number }}
         docker push ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.run_number }}
-
-    # --- Terraform Steps ---
-
-    # Step 5: Sets up the Terraform CLI on the runner.
-    - name: 'Setup Terraform'
-      uses: hashicorp/setup-terraform@v2
-
-    # Step 6: Initializes Terraform, downloading the Azure provider.
-    - name: 'Terraform Init'
-      working-directory: ./terraform
-      run: terraform init
-
-    # Step 7: Generates a Terraform plan to check for infrastructure changes.
-    # It passes the AKS cluster name and DNS prefix as variables.
-    - name: 'Terraform Plan'
-      working-directory: ./terraform
-      run: terraform plan -out=tfplan
-      env:
-        # Note: TF_VAR_ is a special prefix that Terraform recognizes
-        TF_VAR_aks_cluster_name: ${{ env.AKS_CLUSTER_NAME }}
-        TF_VAR_aks_dns_prefix: ${{ secrets.TF_VAR_aks_dns_prefix }} # From GitHub Secrets
-
 
