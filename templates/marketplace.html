@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Marketplace{% endblock %}
+
+{% block sidebar %}
+    <!-- Search Bar -->
+    <div class="relative mb-4">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg></div>
+        <input type="search" id="search-input" placeholder="Search Marketplace" class="w-full pl-10 pr-4 py-2 border border-transparent rounded-full bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar-filters">
+        <nav class="space-y-1">
+            <a href="#" class="tag-filter-btn active flex items-center px-2 py-2 text-gray-900 font-semibold bg-gray-200 rounded-lg text-sm" data-tag="all">
+                 <span class="flex items-center justify-center w-9 h-9 mr-3 bg-blue-600 text-white rounded-full">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                </span>
+                Browse all
+            </a>
+            
+            {% if current_user.is_authenticated %}
+                <div class="pt-2" id="my-complaints-section">
+                     {% if user_complaints %}
+                        <div class="my-2 border-t border-gray-200"></div>
+                        <h4 class="font-semibold text-gray-800 mb-2 px-2 text-base">My Complaints</h4>
+                        <div id="complaint-tags-container" class="space-y-1">
+                            {% for complaint in user_complaints %}
+                                <a href="#" class="tag-filter-btn flex items-center px-2 py-2 text-gray-900 font-semibold hover:bg-gray-100 rounded-lg text-sm" 
+                                   data-tag="complaint-{{ complaint.id }}" 
+                                   data-match-ids="{{ user_complaints_with_match_ids.get(complaint.id, []) | tojson | e }}">
+                                    <span class="flex items-center justify-center w-9 h-9 mr-3 bg-gray-200 rounded-full">
+                                        <svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                                    </span>
+                                    {{ complaint.title }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <a href="{{ url_for('new_complaint') if current_user.is_authenticated else url_for('login') }}" class="w-full flex items-center justify-center mt-2 py-2.5 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg">
+                + Create Complaint
+            </a>
+        </nav>
+        
+        <div class="my-4 border-t border-gray-200"></div>
+
+        <div>
+            <h4 class="font-semibold text-gray-800 mb-2 px-2 text-base">Categories</h4>
+            <div id="tags-container" class="space-y-1">
+                <!-- Dynamic tags will be populated here -->
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-gray-900">Today's picks</h2>
+    </div>
+    
+    <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+        {% for item in items %}
+            <div class="item-card group cursor-pointer" 
+                 data-title="{{ item.title | e }}"
+                 data-location="{{ item.location | e }}"
+                 data-description="{{ item.description | e }}"
+                 data-status="{{ item.status | e }}"
+                 data-images='[{%- for image in item.images -%}"{{ url_for('get_image', image_id=image.id) }}"{% if not loop.last %},{% endif %}{%- endfor -%}]'
+                 data-item-id="{{ item.id }}">
+                <div class="relative w-full aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                    <img src="{{ url_for('get_image', image_id=item.images[0].id) if item.images else '' }}" alt="{{ item.title | e }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                </div>
+                <div class="pt-2">
+                    <p class="font-semibold text-gray-900 truncate text-sm">{{ item.title }}</p>
+                    <p class="text-xs text-gray-600 truncate">{{ item.location }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div id="no-results-message" class="col-span-full text-center py-12 hidden"><p class="text-gray-500">No items match your search criteria.</p></div>
+
+    {% if not current_user.is_authenticated %}
+    <div class="mt-8 border-t border-gray-300 pt-6 text-center">
+        <p class="font-semibold text-gray-800 text-lg">Log in or sign up to see more details and report lost items.</p>
+        <div class="mt-4 flex justify-center space-x-2">
+            <a href="{{ url_for('login') }}" class="bg-[#1877F2] text-white font-bold text-sm px-10 py-2.5 rounded-md hover:bg-[#166fe5]">Log In</a>
+            <a href="{{ url_for('signup') }}" class="bg-[#42b72a] text-white font-bold text-sm px-6 py-2.5 rounded-md hover:bg-[#36a420]">Create new account</a>
+        </div>
+    </div>
+    {% endif %}
+
+<!-- Item Detail Modal -->
+<div id="item-detail-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="relative w-full max-w-4xl flex bg-white h-[90vh] rounded-lg shadow-2xl">
+            <!-- Close Button -->
+            <button id="modal-close-btn" class="absolute top-2 right-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-1 hover:bg-opacity-75 z-20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="w-3/5 bg-black flex items-center justify-center relative">
+                <div id="modal-image-container" class="relative w-full h-full"></div>
+                <button id="modal-prev-btn" class="absolute left-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-2 hover:bg-opacity-75"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                <button id="modal-next-btn" class="absolute right-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-2 hover:bg-opacity-75"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+            </div>
+            <div class="w-2/5 p-6 overflow-y-auto">
+                <h2 id="modal-title" class="text-2xl font-bold text-gray-900"></h2>
+                <p id="modal-location" class="text-sm text-gray-600 mt-1"></p>
+                <div class="mt-4 space-x-2">
+                    <button class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg text-sm">Message</button>
+                    <button class="bg-gray-100 text-gray-800 font-semibold px-4 py-2 rounded-lg text-sm">Save</button>
+                </div>
+                <div class="my-6 border-t border-gray-200"></div>
+                <h3 class="font-bold text-gray-900">Details</h3>
+                <p id="modal-description" class="text-sm text-gray-700 mt-2 whitespace-pre-line"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- MERGED SCRIPT ---
+    const allItemCards = Array.from(document.querySelectorAll('.item-card'));
+    const searchInput = document.getElementById('search-input');
+    const tagsContainer = document.getElementById('tags-container');
+    const noResultsMessage = document.getElementById('no-results-message');
+    const sidebarFilters = document.querySelector('.sidebar-filters');
+    let activeTagBtn = document.querySelector('.tag-filter-btn.active');
+
+    // --- Part 1: Filtering and Tag Generation Logic ---
+    const uniqueTags = new Set();
+    allItemCards.forEach(card => {
+        const description = card.dataset.description;
+        const featuresMatch = description.match(/Features:\s*(.*?)\./i);
+        if (featuresMatch && featuresMatch[1]) {
+            featuresMatch[1].split(',').forEach(tag => {
+                const cleanTag = tag.trim().toLowerCase();
+                if (cleanTag) uniqueTags.add(cleanTag);
+            });
+        }
+    });
+
+    uniqueTags.forEach(tag => {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.className = 'tag-filter-btn flex items-center px-2 py-2 text-gray-900 font-semibold hover:bg-gray-100 rounded-lg text-sm';
+        link.dataset.tag = tag;
+        const capitalizedTag = tag.charAt(0).toUpperCase() + tag.slice(1);
+        link.innerHTML = `<span class="flex items-center justify-center w-9 h-9 mr-3 bg-gray-200 rounded-full"><svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a2 2 0 012 2v5a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zm0 14h.01M7 11h5a2 2 0 012 2v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5a2 2 0 012-2z"></path></svg></span>` + capitalizedTag;
+        tagsContainer.appendChild(link);
+    });
+
+    function filterItems() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const activeTag = activeTagBtn ? activeTagBtn.dataset.tag : 'all';
+        let visibleItems = 0;
+
+        allItemCards.forEach(card => {
+            const title = card.dataset.title.toLowerCase();
+            const description = card.dataset.description.toLowerCase();
+            const itemId = parseInt(card.dataset.itemId, 10);
+            const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
+            
+            let matchesFilter = false;
+            if (activeTag === 'all') {
+                matchesFilter = true;
+            } else if (activeTag.startsWith('complaint-')) {
+                const matchIds = JSON.parse(activeTagBtn.dataset.matchIds);
+                matchesFilter = matchIds.includes(itemId);
+            } else {
+                matchesFilter = description.includes(activeTag);
+            }
+            
+            if (matchesSearch && matchesFilter) {
+                card.style.display = 'block';
+                visibleItems++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        noResultsMessage.style.display = visibleItems === 0 ? 'block' : 'none';
+    }
+
+    if (sidebarFilters) {
+        sidebarFilters.addEventListener('click', (e) => {
+            const clickedBtn = e.target.closest('.tag-filter-btn');
+            if (clickedBtn) {
+                e.preventDefault();
+                if (activeTagBtn) {
+                    activeTagBtn.classList.remove('active', 'bg-gray-200');
+                    if(activeTagBtn.dataset.tag === 'all') {
+                        activeTagBtn.querySelector('span').classList.remove('bg-blue-600', 'text-white');
+                        activeTagBtn.querySelector('span').classList.add('bg-blue-100');
+                    }
+                }
+                clickedBtn.classList.add('active', 'bg-gray-200');
+                if (clickedBtn.dataset.tag === 'all') {
+                     clickedBtn.querySelector('span').classList.add('bg-blue-600', 'text-white');
+                     clickedBtn.querySelector('span').classList.remove('bg-blue-100');
+                }
+                activeTagBtn = clickedBtn;
+                filterItems();
+            }
+        });
+    }
+
+    searchInput.addEventListener('input', filterItems);
+
+    // --- Part 2: Item Detail Modal Logic ---
+    const modal = document.getElementById('item-detail-modal');
+    const closeBtn = document.getElementById('modal-close-btn');
+    const prevBtn = document.getElementById('modal-prev-btn');
+    const nextBtn = document.getElementById('modal-next-btn');
+    const imageContainer = document.getElementById('modal-image-container');
+    const modalTitle = document.getElementById('modal-title');
+    const modalLocation = document.getElementById('modal-location');
+    const modalDescription = document.getElementById('modal-description');
+    
+    let currentImages = [];
+    let currentImageIndex = 0;
+
+    const showImage = (index) => {
+        imageContainer.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = currentImages[index];
+        img.className = 'w-full h-full object-contain';
+        imageContainer.appendChild(img);
+        prevBtn.style.display = currentImages.length > 1 ? 'block' : 'none';
+        nextBtn.style.display = currentImages.length > 1 ? 'block' : 'none';
+    };
+
+    const openModal = (card) => {
+        currentImages = JSON.parse(card.dataset.images);
+        currentImageIndex = 0;
+        
+        modalTitle.textContent = card.dataset.title;
+        modalLocation.textContent = card.dataset.location;
+        modalDescription.textContent = card.dataset.description;
+
+        if(currentImages.length > 0) {
+            showImage(currentImageIndex);
+        } else {
+            imageContainer.innerHTML = '<p class="text-white text-center">No image available</p>';
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        }
+        modal.classList.remove('hidden');
+    };
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+    };
+
+    document.querySelectorAll('.item-card').forEach(card => {
+        card.addEventListener('click', () => openModal(card));
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target.closest('.relative.w-full.max-w-4xl') === null && e.target !== modalContent && !modalContent.contains(e.target)) {
+           closeModal();
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+        showImage(currentImageIndex);
+    });
+
+    nextBtn.addEventListener('click', () => {
+        currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+        showImage(currentImageIndex);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Report a Lost Item{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-8">
+    <div class="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">
+        <h2 class="text-2xl font-bold text-center text-gray-900 mb-6">Lost Item Report</h2>
+        <p class="text-center text-gray-500 mb-8">Provide details about your lost item. We will use an AI-generated description from your first image to find potential matches.</p>
+        <form method="POST" action="{{ url_for('new_complaint') }}" enctype="multipart/form-data" class="space-y-6">
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700">Item Title</label>
+                <input type="text" id="title" name="title" required placeholder="e.g., Blue Jansport Backpack" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-800 focus:border-gray-800">
+            </div>
+            <div>
+                <label for="location" class="block text-sm font-medium text-gray-700">Where did you lose it?</label>
+                <input type="text" id="location" name="location" required placeholder="e.g., Near the main library" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-800 focus:border-gray-800">
+            </div>
+             <div>
+                <label for="contact" class="block text-sm font-medium text-gray-700">Your Contact Info (Phone or Email)</label>
+                <input type="text" id="contact" name="contact" required placeholder="This will only be shown to admins" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-800 focus:border-gray-800">
+            </div>
+            <div>
+                <label for="file" class="block text-sm font-medium text-gray-700">Upload Image(s)</label>
+                <input type="file" id="file" name="file" accept="image/*" multiple required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200">
+            </div>
+            <button type="submit" class="w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-md hover:bg-black transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800">
+                Submit Report
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

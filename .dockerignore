@@ -1,0 +1,17 @@
+Exclude Python's virtual environment folders
+venv/
+.venv/
+env/
+
+Exclude Python's bytecode and cache
+pycache/
+*.pyc
+
+Exclude Git and IDE-specific folders
+.git/
+.vscode/
+.idea/
+
+Exclude the local SQLite database file
+In production, the database should be a separate, managed service.
+assets.db

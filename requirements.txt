@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+azure-ai-vision-imageanalysis
+azure-core
+numpy
+gunicorn

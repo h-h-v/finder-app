@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: finder-app-service
+spec:
+  type: LoadBalancer # This type creates a public IP address and Azure Load Balancer
+  ports:
+  - port: 80 # The public-facing port (standard web traffic)
+    targetPort: 5000 # The port on our container that traffic should be sent to
+  selector:
+    app: finder-app # This connects the service to our deployment

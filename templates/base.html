@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finder | {% block title %}{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F0F2F5; }
+        .flash { padding: 1rem; margin-bottom: 1rem; border-radius: 0.375rem; font-weight: 500; border: 1px solid; }
+        .flash.success { background-color: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+        .flash.danger { background-color: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Top Header Bar -->
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-14">
+                <!-- Left side: Logo -->
+                <div class="flex items-center space-x-2">
+                    <a href="{{ url_for('home') }}">
+                        <!-- UPDATED: Replaced SVG with IMG tag for logo.png -->
+                        <img src="{{ url_for('static', filename='logo.png') }}" alt="Finder Logo" class="h-10 w-auto">
+                    </a>
+                </div>
+
+                <!-- Right side: User Info / Login Form -->
+                <div class="flex items-center space-x-2">
+                    {% if current_user.is_authenticated %}
+                        <span class="font-semibold text-gray-800">{{ current_user.username }}</span>
+                        <a href="{{ url_for('logout') }}" class="bg-gray-200 text-gray-800 text-sm font-semibold px-4 py-2 rounded-md hover:bg-gray-300">Logout</a>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('login') }}" class="flex space-x-2">
+                            <input type="text" name="username" placeholder="Username" class="hidden md:block border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="password" name="password" placeholder="Password" class="hidden md:block border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button type="submit" class="bg-blue-600 text-white font-bold text-sm px-6 py-2 rounded-md hover:bg-blue-700">Log In</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area with Sidebar -->
+    <div class="flex">
+        <!-- Left Sidebar -->
+        <!-- UPDATED: Set width to exact 360px -->
+        <aside class="hidden lg:block w-[360px] bg-white p-4 h-[calc(100vh-56px)] overflow-y-auto sticky top-14">
+             <div class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl font-bold text-gray-900">Marketplace</h1>
+                <a href="#" class="bg-gray-200 rounded-full p-2 hover:bg-gray-300">
+                    <svg class="w-6 h-6 text-gray-800" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm-5.6-4.29a1 1 0 0 0 1.4 1.42l.71-.71a1 1 0 0 0-1.42-1.42l-.7.7zm3.2-6.2a1 1 0 0 0-1.42 1.42l.71.71a1 1 0 0 0 1.42-1.42l-.7-.7zm-3.2 3.2a1 1 0 0 0 1.42 1.42l.71-.71a1 1 0 0 0-1.42-1.42l-.7.71zm6.4-3.2a1 1 0 0 0-1.42 1.42l.71.71a1 1 0 0 0 1.42-1.42l-.7-.71zM10 6a1 1 0 0 0-1 1v2a1 1 0 1 0 2 0V7a1 1 0 0 0-1-1zm0 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path></svg>
+                </a>
+             </div>
+            {% block sidebar %}{% endblock %}
+        </aside>
+
+        <!-- Right Content -->
+        <main class="flex-grow p-4 lg:p-6">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-4">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+</body>
+</html>

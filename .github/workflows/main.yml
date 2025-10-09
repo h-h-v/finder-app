@@ -1,0 +1,70 @@
+# Name of the GitHub Actions workflow
+name: Build Docker Image and Check Terraform Plan
+
+# Controls when the action will run. 
+# It triggers on pushes to the "main" branch.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+# Define environment variables for the workflow
+env:
+  # Using your existing Resource Group and ACR names
+  RESOURCE_GROUP_NAME: 'LFS'
+  ACR_NAME: 'ACRLFS' 
+  # Define a name for the AKS cluster to be created
+  AKS_CLUSTER_NAME: 'finder-app-aks' 
+
+jobs:
+  build-and-plan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Step 1: Checks out your repository code so the workflow can access it.
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v3
+
+    # Step 2: Logs into your Azure account using the service principal secret.
+    - name: 'Login via Azure CLI'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # Step 3: Logs into your private Azure Container Registry (ACR).
+    - name: 'Login to Azure Container Registry'
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.ACR_NAME }}.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    # Step 4: Builds the Docker image and pushes it to your ACR.
+    # The image is tagged with the unique GitHub run number for versioning.
+    - name: Build and Push Docker image to ACR
+      run: |
+        docker build . -t ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.run_number }}
+        docker push ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.run_number }}
+
+    # --- Terraform Steps ---
+
+    # Step 5: Sets up the Terraform CLI on the runner.
+    - name: 'Setup Terraform'
+      uses: hashicorp/setup-terraform@v2
+
+    # Step 6: Initializes Terraform, downloading the Azure provider.
+    - name: 'Terraform Init'
+      working-directory: ./terraform
+      run: terraform init
+
+    # Step 7: Generates a Terraform plan to check for infrastructure changes.
+    # It passes the AKS cluster name and DNS prefix as variables.
+    - name: 'Terraform Plan'
+      working-directory: ./terraform
+      run: terraform plan -out=tfplan
+      env:
+        # Note: TF_VAR_ is a special prefix that Terraform recognizes
+        TF_VAR_aks_cluster_name: ${{ env.AKS_CLUSTER_NAME }}
+        TF_VAR_aks_dns_prefix: ${{ secrets.TF_VAR_aks_dns_prefix }} # From GitHub Secrets
+
+

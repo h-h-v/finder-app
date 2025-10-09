@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block sidebar %}
+    <!-- Search Bar -->
+    <div class="relative mb-4">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg></div>
+        <input type="search" id="search-input" placeholder="Search Listings" class="w-full pl-10 pr-3 py-2 border border-transparent rounded-full bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+    </div>
+    <nav class="mt-4 space-y-1">
+        <a href="#" id="browse-all-btn" class="tag-filter-btn active flex items-center px-3 py-2 text-sm font-semibold bg-blue-100 text-blue-600 rounded-lg" data-tag="all">
+            <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+            Browse all
+        </a>
+        <button id="log-item-button" class="w-full flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:bg-gray-100 rounded-lg border-t mt-2 pt-2">
+            <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+            + Create new listing
+        </button>
+    </nav>
+    <div class="mt-4 border-t border-gray-200 pt-4">
+        <h4 class="font-semibold text-gray-800 mb-2">Categories</h4>
+        <div id="tags-container" class="space-y-1">
+             <!-- Dynamic tags will be inserted here -->
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-gray-900">All Listings</h2>
+        <div class="flex items-center space-x-2 text-sm">
+            <label for="status-filter" class="font-medium text-gray-700">Status:</label>
+            <select id="status-filter" class="border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                <option value="all">All</option>
+                <option value="Found">Found</option>
+                <option value="Claimed">Claimed</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+        {% for item in items %}
+            <div class="item-card item-details-trigger group cursor-pointer"
+                 data-item-id="{{ item.id }}"
+                 data-title="{{ item.title | e }}"
+                 data-location="{{ item.location | e }}"
+                 data-contact="{{ item.contact | e }}"
+                 data-description="{{ item.description | e }}"
+                 data-status="{{ item.status | e }}"
+                 data-images='[{%- for image in item.images -%}"{{ url_for('get_image', image_id=image.id) }}"{% if not loop.last %},{% endif %}{%- endfor -%}]'>
+                <div class="relative w-full aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                    <img src="{{ url_for('get_image', image_id=item.images[0].id) if item.images else '' }}" alt="{{ item.title | e }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                </div>
+                <div class="pt-2">
+                    <p class="font-semibold text-gray-900 truncate">{{ item.title }}</p>
+                    <p class="text-sm text-gray-600 truncate">{{ item.location }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div id="no-results-message" class="col-span-full text-center py-12 hidden"><p class="text-gray-500">No items match your search criteria.</p></div>
+    
+    <!-- Modal for Logging a New Item -->
+    <div id="log-item-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900">Create New Listing</h2>
+                <button id="log-item-modal-close-button" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('analyze_image') }}" enctype="multipart/form-data" class="p-4 space-y-4">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+                    <input type="text" id="title" name="title" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700">Location Found</label>
+                    <input type="text" id="location" name="location" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div>
+                    <label for="contact" class="block text-sm font-medium text-gray-700">Contact</label>
+                    <input type="text" id="contact" name="contact" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select name="status" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                        <option value="Found">Found</option>
+                        <option value="Claimed">Claimed</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="file" class="block text-sm font-medium text-gray-700">Upload Image(s)</label>
+                    <input type="file" id="file" name="file" accept="image/*" multiple required class="mt-1 block w-full">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">
+                        Analyze & Log Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Item Details with Edit/Delete Functionality -->
+    <div id="item-details-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                <h2 id="modal-title" class="text-xl font-bold text-gray-900"></h2>
+                <button id="modal-close-button" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto">
+                <form id="edit-item-form" method="POST" action="">
+                    <div class="p-4 space-y-4">
+                        <!-- View State -->
+                        <div id="view-state">
+                            <p id="modal-meta" class="text-sm text-gray-600"></p>
+                            <p id="modal-description" class="mt-4 text-base text-gray-700 whitespace-pre-line"></p>
+                            <div id="modal-images" class="mt-4 flex flex-wrap gap-3"></div>
+                        </div>
+
+                        <!-- Edit State (hidden by default) -->
+                        <div id="edit-state" class="hidden space-y-4">
+                            <div>
+                                <label for="edit-title" class="block text-sm font-medium text-gray-700">Title</label>
+                                <input type="text" id="edit-title" name="title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label for="edit-location" class="block text-sm font-medium text-gray-700">Location</label>
+                                <input type="text" id="edit-location" name="location" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                            </div>
+                             <div>
+                                <label for="edit-contact" class="block text-sm font-medium text-gray-700">Contact</label>
+                                <input type="text" id="edit-contact" name="contact" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label for="edit-status" class="block text-sm font-medium text-gray-700">Status</label>
+                                <select id="edit-status" name="status" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                                    <option value="Found">Found</option>
+                                    <option value="Claimed">Claimed</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="p-4 border-t flex justify-end items-center space-x-3 bg-gray-50 sticky bottom-0">
+                 <div id="view-actions">
+                     <button type="button" id="edit-button" class="bg-gray-800 text-white font-bold py-2 px-4 rounded-md hover:bg-black">Edit</button>
+                 </div>
+                 <div id="edit-actions" class="hidden flex items-center space-x-3">
+                    <form id="delete-item-form" method="POST" action="">
+                        <button type="submit" class="text-red-600 hover:text-red-900 font-semibold">Delete Item</button>
+                    </form>
+                    <button type="button" id="cancel-edit-button" class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit" form="edit-item-form" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Save Changes</button>
+                 </div>
+            </div>
+        </div>
+    </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- EXISTING FILTERING AND MODAL LOGIC ---
+    const allItemCards = Array.from(document.querySelectorAll('.item-card'));
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    const tagsContainer = document.getElementById('tags-container');
+    const noResultsMessage = document.getElementById('no-results-message');
+    let activeTagBtn = document.querySelector('.tag-filter-btn.active');
+    const logItemModal = document.getElementById('log-item-modal');
+    const logItemButton = document.getElementById('log-item-button');
+    const logItemModalCloseButton = document.getElementById('log-item-modal-close-button');
+
+    const uniqueTags = new Set();
+    allItemCards.forEach(card => {
+        const description = card.dataset.description;
+        const featuresMatch = description.match(/Features:\s*(.*?)\./);
+        if (featuresMatch && featuresMatch[1]) {
+            featuresMatch[1].split(',').forEach(tag => {
+                const cleanTag = tag.trim().toLowerCase();
+                if (cleanTag) uniqueTags.add(cleanTag);
+            });
+        }
+    });
+    
+    uniqueTags.forEach(tag => {
+        const button = document.createElement('button');
+        button.className = 'tag-filter-btn w-full text-left px-3 py-2 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-100';
+        button.dataset.tag = tag;
+        button.textContent = tag.charAt(0).toUpperCase() + tag.slice(1);
+        tagsContainer.appendChild(button);
+    });
+
+    function filterItems() {
+        // ... (Filtering logic remains the same)
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        const activeTag = activeTagBtn ? activeTagBtn.dataset.tag : 'all';
+        let visibleItems = 0;
+
+        allItemCards.forEach(card => {
+            const title = card.dataset.title.toLowerCase();
+            const description = card.dataset.description.toLowerCase();
+            const status = card.dataset.status;
+
+            const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
+            const matchesStatus = statusValue === 'all' || status === statusValue;
+            const matchesTag = activeTag === 'all' || description.includes(activeTag);
+            
+            if (matchesSearch && matchesStatus && matchesTag) {
+                card.style.display = 'block';
+                visibleItems++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        noResultsMessage.style.display = visibleItems === 0 ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('input', filterItems);
+    statusFilter.addEventListener('change', filterItems);
+    
+    tagsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('tag-filter-btn')) {
+            if (activeTagBtn) {
+                activeTagBtn.classList.remove('active', 'bg-blue-100', 'text-blue-600');
+                 activeTagBtn.classList.add('hover:bg-gray-100');
+            }
+            e.target.classList.add('active', 'bg-blue-100', 'text-blue-600');
+            e.target.classList.remove('hover:bg-gray-100');
+            activeTagBtn = e.target;
+            filterItems();
+        }
+    });
+    document.getElementById('browse-all-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+         if (activeTagBtn) {
+            activeTagBtn.classList.remove('active', 'bg-blue-100', 'text-blue-600');
+            activeTagBtn.classList.add('hover:bg-gray-100');
+        }
+        e.currentTarget.classList.add('active', 'bg-blue-100', 'text-blue-600');
+        activeTagBtn = e.currentTarget;
+        filterItems();
+    });
+
+    const openLogItemModal = () => logItemModal.classList.remove('hidden');
+    const closeLogItemModal = () => logItemModal.classList.add('hidden');
+    logItemButton.addEventListener('click', openLogItemModal);
+    logItemModalCloseButton.addEventListener('click', closeLogItemModal);
+    logItemModal.addEventListener('click', (e) => { if (e.target === logItemModal) closeLogItemModal(); });
+    
+    // --- NEW: MODAL LOGIC FOR EDIT/DELETE ---
+    const detailsModal = document.getElementById('item-details-modal');
+    const detailsModalCloseButton = document.getElementById('modal-close-button');
+    const editItemForm = document.getElementById('edit-item-form');
+    const deleteItemForm = document.getElementById('delete-item-form');
+    const viewState = document.getElementById('view-state');
+    const editState = document.getElementById('edit-state');
+    const viewActions = document.getElementById('view-actions');
+    const editActions = document.getElementById('edit-actions');
+    const editButton = document.getElementById('edit-button');
+    const cancelEditButton = document.getElementById('cancel-edit-button');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMeta = document.getElementById('modal-meta');
+    const modalDescription = document.getElementById('modal-description');
+    const modalImagesContainer = document.getElementById('modal-images');
+    const editTitle = document.getElementById('edit-title');
+    const editLocation = document.getElementById('edit-location');
+    const editContact = document.getElementById('edit-contact');
+    const editStatus = document.getElementById('edit-status');
+    let currentItemId = null;
+
+    const switchToViewMode = () => {
+        viewState.classList.remove('hidden');
+        editState.classList.add('hidden');
+        viewActions.classList.remove('hidden');
+        editActions.classList.add('hidden');
+    };
+
+    const switchToEditMode = (data) => {
+        editTitle.value = data.title;
+        editLocation.value = data.location;
+        editContact.value = data.contact;
+        editStatus.value = data.status;
+        editItemForm.action = `/admin/item/edit/${currentItemId}`;
+        deleteItemForm.action = `/admin/item/delete/${currentItemId}`;
+        viewState.classList.add('hidden');
+        editState.classList.remove('hidden');
+        viewActions.classList.add('hidden');
+        editActions.classList.remove('hidden');
+    };
+
+    const openDetailsModal = (data) => {
+        currentItemId = data.itemId;
+        modalTitle.textContent = data.title;
+        modalMeta.innerHTML = `<strong>Location:</strong> ${data.location} | <strong>Contact:</strong> ${data.contact} | <strong>Status:</strong> ${data.status}`;
+        modalDescription.textContent = data.description;
+        modalImagesContainer.innerHTML = '';
+        const images = JSON.parse(data.images);
+        images.forEach(src => {
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = "w-40 h-40 object-cover rounded-md border border-gray-200";
+            modalImagesContainer.appendChild(img);
+        });
+        switchToViewMode();
+        detailsModal.classList.remove('hidden');
+        detailsModal.classList.add('flex');
+    };
+    
+    const closeDetailsModal = () => {
+        detailsModal.classList.add('hidden');
+        detailsModal.classList.remove('flex');
+    };
+    
+    allItemCards.forEach(trigger => {
+        trigger.addEventListener('click', () => openDetailsModal(trigger.dataset));
+    });
+    
+    detailsModalCloseButton.addEventListener('click', closeDetailsModal);
+    detailsModal.addEventListener('click', (e) => { if (e.target === detailsModal) closeDetailsModal(); });
+    editButton.addEventListener('click', () => {
+        const cardData = document.querySelector(`.item-card[data-item-id='${currentItemId}']`).dataset;
+        switchToEditMode(cardData);
+    });
+    cancelEditButton.addEventListener('click', switchToViewMode);
+    deleteItemForm.addEventListener('submit', (e) => {
+        if (!confirm('Are you sure you want to permanently delete this item? This action cannot be undone.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

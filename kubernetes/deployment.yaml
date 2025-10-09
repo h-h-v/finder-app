@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finder-app-deployment
+spec:
+  replicas: 2 # Runs two copies of your app for high availability
+  selector:
+    matchLabels:
+      app: finder-app
+  template:
+    metadata:
+      labels:
+        app: finder-app
+    spec:
+      containers:
+      - name: finder-app
+        image: "[YOUR_ACR_LOGIN_SERVER]/finder-app:latest" # This is a placeholder that the pipeline will replace
+        ports:
+        - containerPort: 5000 # The port Gunicorn is running on
+        
+        # This new section tells Kubernetes how to find the secrets and inject them
+        # as environment variables into your running container.
+        env:
+        - name: AZURE_AI_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: azure-ai-secrets # Must match the secret name in main.yml
+              key: AZURE_AI_ENDPOINT # The key within that secret
+        - name: AZURE_AI_KEY
+          valueFrom:
+            secretKeyRef:
+              name: azure-ai-secrets # Must match the secret name in main.yml
+              key: AZURE_AI_KEY # The key within that secret
