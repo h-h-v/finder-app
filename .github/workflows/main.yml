@@ -1,45 +1,46 @@
-# Name of the GitHub Actions workflow
 name: Build and Push Docker Image to ACR
 
-# Controls when the action will run. 
-# It triggers on pushes to the "main" branch.
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch: # Allows manual triggering from the Actions tab
+    branches: [ main ]        # Trigger on pushes to main branch
+  workflow_dispatch:          # Allows manual trigger
 
-# Define environment variables for the workflow
 env:
-  # Using your existing ACR name
-  ACR_NAME: 'ACRLFS' 
+  ACR_NAME: 'ACRLFS'          # Your Azure Container Registry name
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
+
     steps:
-    # Step 1: Checks out your repository code so the workflow can access it.
-    - name: 'Checkout GitHub Action'
-      uses: actions/checkout@v3
+      # 1️⃣ Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # Step 2: Logs into your Azure account using the service principal secret.
-    - name: 'Login via Azure CLI'
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # 2️⃣ Login to Azure
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # Step 3: Logs into your private Azure Container Registry (ACR).
-    - name: 'Login to Azure Container Registry'
-      uses: azure/docker-login@v1
-      with:
-        login-server: ${{ env.ACR_NAME }}.azurecr.io
-        username: ${{ secrets.ACR_USERNAME }}
-        password: ${{ secrets.ACR_PASSWORD }}
+      # 3️⃣ Login to Azure Container Registry
+      - name: Login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.ACR_NAME }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
-    # Step 4: Builds the Docker image from your Dockerfile and pushes it to ACR.
-    # The image is tagged with the unique GitHub run number for versioning.
-    - name: Build and Push Docker image to ACR
-      run: |
-        docker build . -t ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.run_number }}
-        docker push ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.run_number }}
+      # 4️⃣ Build Docker image with caching
+      - name: Build Docker image
+        run: |
+          docker build --cache-from ${{ env.ACR_NAME }}.azurecr.io/finder-app:latest \
+                       -t ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.sha }} .
 
+      # 5️⃣ Push Docker image with SHA tag
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.sha }}
+          docker tag ${{ env.ACR_NAME }}.azurecr.io/finder-app:${{ github.sha }} \
+                     ${{ env.ACR_NAME }}.azurecr.io/finder-app:latest
+          docker push ${{ env.ACR_NAME }}.azurecr.io/finder-app:latest
