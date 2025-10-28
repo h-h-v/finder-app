@@ -7,6 +7,12 @@ on:
     branches: [ main ]
   workflow_dispatch: # Allows manual triggering
 
+# --- NEW: Grant permissions for CodeQL results ---
+permissions:
+  actions: read
+  contents: read
+  security-events: write # Allows uploading CodeQL results
+
 env:
   ACR_NAME: 'ACRLFS' # Your existing ACR name
 
@@ -19,15 +25,14 @@ jobs:
     - name: 'Checkout GitHub Action'
       uses: actions/checkout@v4 
 
-    # --- NEW: Initialize CodeQL ---
+    # --- Initialize CodeQL ---
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: python 
         # queries: security-extended,security-and-quality # Optional: Use more queries if needed
 
-    # --- NEW: Build step required by CodeQL ---
-    # Install dependencies so CodeQL can analyze the code interactions
+    # --- Build step required by CodeQL ---
     - name: Set up Python 3.9
       uses: actions/setup-python@v4
       with:
@@ -37,7 +42,7 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    # --- NEW: Perform CodeQL Analysis ---
+    # --- Perform CodeQL Analysis ---
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
 
@@ -65,5 +70,3 @@ jobs:
     # Step 5: (Optional) Logout from ACR
     - name: Logout from Azure Container Registry
       run: docker logout ${{ env.ACR_NAME }}.azurecr.io
-
-    # Step 6: REMOVED AZ LOGOUT - It's handled implicitly by azure/login
