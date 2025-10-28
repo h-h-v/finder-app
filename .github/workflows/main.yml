@@ -66,9 +66,4 @@ jobs:
     - name: Logout from Azure Container Registry
       run: docker logout ${{ env.ACR_NAME }}.azurecr.io
 
-    # Step 6: (Optional) Logout from Azure CLI
-    - name: Logout from Azure CLI
-      run: az logout
-      if: always() 
-    
-
+    # Step 6: REMOVED AZ LOGOUT - It's handled implicitly by azure/login
