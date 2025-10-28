@@ -1,5 +1,5 @@
 # Name of the GitHub Actions workflow
-name: Build, Scan, and Push Docker Image to ACR
+name: Build, Scan, Push, and Deploy to AKS
 
 # Controls when the action will run. 
 on:
@@ -7,14 +7,18 @@ on:
     branches: [ main ]
   workflow_dispatch: # Allows manual triggering
 
-# --- NEW: Grant permissions for CodeQL results ---
+# --- Grant permissions for CodeQL results and ID token ---
 permissions:
   actions: read
   contents: read
-  security-events: write # Allows uploading CodeQL results
+  security-events: write 
+  id-token: write # Required for Kubernetes secret creation
 
 env:
   ACR_NAME: 'ACRLFS' # Your existing ACR name
+  # Add resource group and AKS cluster names if needed for K8s context
+  RESOURCE_GROUP: 'LFS' 
+  AKS_CLUSTER_NAME: 'aks-finder-app' # MAKE SURE this matches the name in your terraform/variables.tf
 
 jobs:
   build-scan-and-push:
@@ -30,7 +34,6 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: python 
-        # queries: security-extended,security-and-quality # Optional: Use more queries if needed
 
     # --- Build step required by CodeQL ---
     - name: Set up Python 3.9
@@ -70,3 +73,22 @@ jobs:
     # Step 5: (Optional) Logout from ACR
     - name: Logout from Azure Container Registry
       run: docker logout ${{ env.ACR_NAME }}.azurecr.io
+      
+    # --- NEW: Set K8s context ---
+    # Connects the workflow runner to your AKS cluster
+    - name: Set K8s context
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: ${{ env.RESOURCE_GROUP }}
+        cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+        
+    # --- NEW: Create Kubernetes Secret for Application Insights ---
+    # This takes the connection string from GitHub Secrets and stores it securely in K8s
+    - name: Create K8s Secret for App Insights
+      uses: azure/k8s-create-secret@v4 # Use v4 or latest
+      with:
+        namespace: default # Or your target namespace
+        secret-name: appinsights-secret
+        # The key name within the K8s secret will be 'connection-string'
+        literal-values: connection-string=${{ secrets.APPINSIGHTS_CONNECTION_STRING }} 
+      # Note: This step implicitly uses the K8s context set above.
